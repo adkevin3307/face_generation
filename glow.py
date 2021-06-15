@@ -31,13 +31,11 @@ if __name__ == '__main__':
 
     train_loader = load_data(args.root_folder)
 
-    # load model
     net = Glow_Net(hidden_channels=512, depth=32, n_levels=3, input_dims=(3, 64, 64))
 
     if args.load:
         model = torch.load(args.load)
 
-    # load optimizers
     optimizer = optim.Adam(net.parameters(), lr=args.lr)
 
     model = Glow(net, optimizer)
@@ -57,3 +55,7 @@ if __name__ == '__main__':
         os.makedirs(weight_folder)
 
         model.train(args.epochs, train_loader, warmup_epochs=args.warmup_epochs, grad_norm_clip=args.grad_norm_clip)
+
+    model.generate('images/generate.png', n_samples=16, z_stds=[1.0])
+    model.interpolate('images/interpolate.png', train_loader, n_samples=3, interpolate_amount=5)
+    model.change_attribute('images/attribute.png', train_loader, n_samples=2, change_amount=4)
