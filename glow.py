@@ -13,9 +13,8 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 import torch.cuda as cuda
-import torch.nn.functional as F
-import torch.distributions as D
 import torch.backends.cudnn as cudnn
+from torch.nn.functional import one_hot
 from torchvision.utils import save_image, make_grid
 
 from utils import parse, load_data
@@ -462,6 +461,25 @@ def train(model, train_loader, optimizer, args):
                 torch.save(model, f'weights/nf/{epoch + 1}.pth')
 
 
+def _gen_label(size: int, min_object_amount: int = 3, max_object_amount: int = 10, num_classes: int = 40) -> torch.Tensor:
+    gen_label = []
+
+    for _ in range(size):
+        object_amount = np.random.randint(min_object_amount, max_object_amount, 1)
+
+        temp_gen_label = np.random.choice(range(num_classes), object_amount, replace=False)
+        temp_gen_label = one_hot(torch.tensor(temp_gen_label), num_classes)
+
+        gen_label.append(torch.sum(temp_gen_label, dim=0).view(1, -1))
+
+    gen_label = torch.cat(gen_label, dim=0)
+    gen_label[gen_label == 0] = -1
+
+    gen_label = gen_label.type(torch.float)
+
+    return gen_label
+
+
 if __name__ == '__main__':
     seed = 0
 
@@ -502,3 +520,158 @@ if __name__ == '__main__':
         os.makedirs(weight_folder)
 
         train(model, train_loader, optimizer, args)
+
+
+    # index2name = [
+        # '5_o_Clock_Shadow',
+        # 'Arched_Eyebrows',
+        # 'Attractive',
+        # 'Bags_Under_Eyes',
+        # 'Bald',
+        # 'Bangs',
+        # 'Big_Lips',
+        # 'Big_Nose',
+        # 'Black_Hair',
+        # 'Blond_Hair',
+        # 'Blurry',
+        # 'Brown_Hair',
+        # 'Bushy_Eyebrows',
+        # 'Chubby',
+        # 'Double_Chin',
+        # 'Eyeglasses',
+        # 'Goatee',
+        # 'Gray_Hair',
+        # 'Heavy_Makeup',
+        # 'High_Cheekbones',
+        # 'Male',
+        # 'Mouth_Slightly_Open',
+        # 'Mustache',
+        # 'Narrow_Eyes',
+        # 'No_Beard',
+        # 'Oval_Face',
+        # 'Pale_Skin',
+        # 'Pointy_Nose',
+        # 'Receding_Hairline',
+        # 'Rosy_Cheeks',
+        # 'Sideburns',
+        # 'Smiling',
+        # 'Straight_Hair',
+        # 'Wavy_Hair',
+        # 'Wearing_Earrings',
+        # 'Wearing_Hat',
+        # 'Wearing_Lipstick',
+        # 'Wearing_Necklace',
+        # 'Wearing_Necktie',
+        # 'Young'
+    # ]
+
+    # gen_labels = _gen_label(16)
+
+    # for gen_label in gen_labels:
+        # used_label = []
+
+        # for i in range(len(gen_label)):
+            # if gen_label[i] > 0.0:
+                # used_label.append(index2name[i])
+
+        # print(', '.join(used_label))
+
+    # gen_labels = gen_labels.to(args.device)
+    # samples = generate(model, gen_labels, n_samples=gen_labels.shape[0], z_stds=[1.0])
+
+    # images = make_grid(samples.cpu(), nrow=4, normalize=True)
+    # save_image(images, 'result.png')
+
+    # model.eval()
+    # for image, label in train_loader:
+        # image = image.to(args.device)
+        # label = label.to(args.device)
+
+        # zs, _ = model.forward(image, label)
+
+        # start_z = []
+        # stop_z = []
+
+        # for z in zs:
+            # start_z.append(z[0:3])
+            # stop_z.append(z[3:6])
+
+        # output = torch.zeros(3, 200, 476)
+
+        # samples, _ = model.inverse(label[0:3], start_z, batch_size=3, z_std=1.0)
+        # images = make_grid(samples.cpu(), nrow=1, normalize=True)
+        # print(image.shape)
+        # output[:, :, 0: 68] = images
+
+        # for i in range(5):
+            # for j in range(len(start_z)):
+                # start_z[j] += (stop_z[j] - start_z[j]) / 5.0
+
+            # condition = label[0:3] if i < 5 else label[3:6]
+            # samples, _ = model.inverse(condition, start_z, batch_size=3, z_std=1.0)
+            # images = make_grid(samples.cpu(), nrow=1, normalize=True)
+            # output[:, :, ((i + 1) * 68): ((i + 2) * 68)] = images
+
+        # samples, _ = model.inverse(label[3:6], stop_z, batch_size=3, z_std=1.0)
+        # images = make_grid(samples.cpu(), nrow=1, normalize=True)
+        # output[:, :, (6 * 68):] = images
+
+        # save_image(output, f'result.png')
+
+        # break
+
+    # for image, label in train_loader:
+        # image = image.to(args.device)
+        # label = label.to(args.device)
+
+        # zs, _ = model.forward(image, label)
+
+        # z = []
+        # for element in zs:
+            # z.append(element[0: 2])
+
+        # label = torch.cat([label[0].reshape(1, 40), label[-1].reshape(1, 40)], dim=0)
+        # print(label.shape)
+
+        # for one_label in label:
+            # used_label = []
+
+            # for i in range(len(one_label)):
+                # if one_label[i] > 0.0:
+                    # used_label.append(index2name[i])
+
+            # print(', '.join(used_label))
+
+        # output = torch.zeros(3, 134, 68 * 5)
+
+        # samples, _ = model.inverse(label, z, batch_size=label.shape[0], z_std=1.0)
+        # images = make_grid(samples.cpu(), nrow=1, normalize=True)
+        # print(image.shape)
+        # output[:, :, 0: 68] = images
+
+        # count = 0
+        # while count < 4:
+            # index = random.choice(range(40))
+            # if label[0, index] < 0.0 and label[1, index] < 0.0:
+                # count += 1
+
+                # label[0, index] = 1.0
+                # label[1, index] = 1.0
+
+                # for one_label in label:
+                    # used_label = []
+
+                    # for i in range(len(one_label)):
+                        # if one_label[i] > 0.0:
+                            # used_label.append(index2name[i])
+
+                    # print(', '.join(used_label))
+
+                # samples, _ = model.inverse(label, z, batch_size=label.shape[0], z_std=1.0)
+                # images = make_grid(samples.cpu(), nrow=1, normalize=True)
+                # print(image.shape)
+                # output[:, :, (count * 68): ((count + 1) * 68)] = images
+
+        # save_image(output, f'result.png')
+
+        # break
