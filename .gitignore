@@ -1,0 +1,5 @@
+.vim/
+__pycache__/
+weights/nf*/
+images*/
+Pipfile*
